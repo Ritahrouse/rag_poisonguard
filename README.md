@@ -53,21 +53,22 @@ flowchart TD
 
 
 ## Project Structure
-
+```
 rag_poisonguard/
 ├── agents/
-│ ├── search_agent.py # L3 sub-agent: queries arXiv API
-│ ├── retriever_agent.py # L3 sub-agent: FAISS vector store
-│ ├── summary_agent.py # L3 sub-agent: Ollama summarisation
-│ ├── research_finder_agent.py # L3 orchestrator (Defender)
-│ ├── poison_injector_agent.py # L4 attacker
-│ └── auditor_agent.py # L5 mitigation
-├── corpus/ # FAISS index + metadata saved here
-├── logs/ # Run logs
-├── outputs/ # Recommendation output files
-├── config.py # Central settings
-├── main.py # Entry point
+│   ├── search_agent.py          # L3 sub-agent: queries arXiv API
+│   ├── retriever_agent.py       # L3 sub-agent: FAISS vector store
+│   ├── summary_agent.py         # L3 sub-agent: Ollama summarisation
+│   ├── research_finder_agent.py # L3 orchestrator (Defender)
+│   ├── poison_injector_agent.py # L4 attacker
+│   └── auditor_agent.py         # L5 mitigation
+├── corpus/                      # FAISS index + metadata saved here
+├── logs/                        # Run logs
+├── outputs/                     # Recommendation output files
+├── config.py                    # Central settings
+├── main.py                      # Entry point
 └── requirements.txt
+```
 
 
 ---
