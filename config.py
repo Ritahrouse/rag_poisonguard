@@ -1,20 +1,32 @@
 # ─────────────────────────────────────────────
 #  RAG-PoisonGuard  |  config.py
-#  Central configuration — edit values here
+#  Central configuration. Every value can be
+#  overridden with an environment variable, so
+#  the same code runs locally and in a container.
 # ─────────────────────────────────────────────
 
-# Ollama model to use (must be pulled locally)
-# Run: ollama pull llama3 — or swap for mistral, phi3, etc.
-OLLAMA_MODEL = "llama3"
+import os
+
+# Ollama model for SummaryAgent (CLI only; the API does not use it)
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
 # How many papers to retrieve from arXiv per query
-TOP_K = 20
+TOP_K = int(os.getenv("TOP_K", "20"))
 
-# Embedding model for the vector store (runs locally via sentence-transformers)
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+# Embedding model for the vector store (sentence-transformers, runs on CPU)
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
-# Where to store the local vector index and paper metadata
-CORPUS_DIR = "corpus"
+# Where the CLI stores its local vector index and paper metadata
+CORPUS_DIR = os.getenv("CORPUS_DIR", "corpus")
 
-# Logging
-LOG_FILE = "logs/run.log"
+# Logging (CLI writes to this file; the API logs to stdout only)
+LOG_FILE = os.getenv("LOG_FILE", "logs/run.log")
+
+# AuditorAgent similarity threshold (z-score)
+Z_SCORE_THRESHOLD = float(os.getenv("Z_SCORE_THRESHOLD", "-1.7"))
+
+# API settings
+MAX_CONCURRENT_AUDITS = int(os.getenv("MAX_CONCURRENT_AUDITS", "2"))
+SEARCH_CACHE_TTL_SECONDS = int(os.getenv("SEARCH_CACHE_TTL_SECONDS", "3600"))
+SEARCH_CACHE_MAX_ENTRIES = int(os.getenv("SEARCH_CACHE_MAX_ENTRIES", "128"))
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

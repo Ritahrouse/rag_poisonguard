@@ -1,0 +1,8 @@
+# Light dependencies for tests and CI. Tests fake the heavy parts
+# (arXiv, sentence-transformers, FAISS), so torch is not needed here.
+numpy
+requests
+fastapi
+httpx
+pytest
+ruff
