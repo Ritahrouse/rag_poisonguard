@@ -8,7 +8,6 @@
 import os
 import json
 import logging
-import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 

@@ -242,7 +242,7 @@ class AuditorAgent:
     def format_audit_report(self, clean, quarantined, query):
         lines = [
             f"\n{'='*62}",
-            f"  AUDIT REPORT — AuditorAgent",
+            "  AUDIT REPORT — AuditorAgent",
             f"  Query: \"{query}\"",
             f"{'='*62}",
             f"\n  ✓ CLEAN PAPERS ({len(clean)} passed):",

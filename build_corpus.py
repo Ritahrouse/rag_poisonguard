@@ -84,7 +84,7 @@ def main():
             print(f"    → Added {len(new_papers)} new papers "
                   f"({total_added} total, {len(papers)-len(new_papers)} duplicates skipped)")
         else:
-            print(f"    → No new papers (all duplicates)")
+            print("    → No new papers (all duplicates)")
 
         # Be polite to arXiv API — 3 second delay between requests
         if i < len(QUERY_BANK) - 1:

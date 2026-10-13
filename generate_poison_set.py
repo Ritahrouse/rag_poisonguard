@@ -63,7 +63,7 @@ def main():
     print("="*62)
     print(f"  Papers to generate : {n_poison}")
     print(f"  Ollama model       : {config.OLLAMA_MODEL}")
-    print(f"  Output             : evaluation/poison_set.json")
+    print("  Output             : evaluation/poison_set.json")
     print("="*62)
     print("\n  This will take approximately "
           f"{n_poison * 1.5:.0f}–{n_poison * 2:.0f} minutes.")
@@ -129,7 +129,7 @@ def main():
     print(f"\n{'='*62}")
     print(f"  Generated : {len(poison_set)} poison papers")
     print(f"  Failed    : {failed}")
-    print(f"  Saved to  : evaluation/poison_set.json")
+    print("  Saved to  : evaluation/poison_set.json")
     print(f"{'='*62}\n")
     print("  Next step: python run_evaluation.py")
 

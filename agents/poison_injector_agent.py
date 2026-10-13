@@ -84,7 +84,7 @@ class PoisonInjectorAgent:
         return "PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation"
 
     def inject(self, query: str, attacker_goal: str) -> dict:
-        print(f"\n[PoisonInjectorAgent] Crafting sophisticated poison paper...")
+        print("\n[PoisonInjectorAgent] Crafting sophisticated poison paper...")
         print(f"  Query         : '{query}'")
         print(f"  Attacker goal : {attacker_goal}")
         print(f"  Assigned ID   : {self.poison_id}  [T1: valid arXiv format]")
@@ -99,10 +99,10 @@ class PoisonInjectorAgent:
 
         poison_paper = self._craft_poison_paper(query, attacker_goal, authors, published, real_cite)
 
-        print(f"\n  ── Crafted Poison Paper ──────────────────────────────")
+        print("\n  ── Crafted Poison Paper ──────────────────────────────")
         print(f"  Title    : {poison_paper['title']}")
         print(f"  Abstract : {poison_paper['abstract'][:350]}...")
-        print(f"  ─────────────────────────────────────────────────────\n")
+        print("  ─────────────────────────────────────────────────────\n")
 
         if self.dry_run:
             print("  [DRY RUN] Paper crafted but NOT injected.")

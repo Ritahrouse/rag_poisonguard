@@ -27,7 +27,6 @@ logging.basicConfig(level=logging.WARNING,
 
 from agents.retriever_agent import RetrieverAgent
 from agents.auditor_agent import AuditorAgent
-import numpy as np
 
 
 def inject_poison_papers(retriever: RetrieverAgent, poison_papers: list[dict]):

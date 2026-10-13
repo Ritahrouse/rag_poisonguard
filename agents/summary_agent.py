@@ -107,7 +107,7 @@ RELEVANCE: One sentence explaining why this paper is or is not relevant to the r
         """
         lines = [
             f"\n{'='*60}",
-            f"  RANKED RECOMMENDATIONS",
+            "  RANKED RECOMMENDATIONS",
             f"  Query: \"{query}\"",
             f"{'='*60}\n",
         ]
