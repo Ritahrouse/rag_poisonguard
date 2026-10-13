@@ -142,17 +142,38 @@ Rules:
 Respond in EXACTLY this format:
 TITLE: <10-15 word title>
 ABSTRACT: <abstract>"""
-
+    
         try:
+            if not getattr(self, "use_llm", True):
+                raise RuntimeError("LLM attacker disabled, using fallback paper")
+
             response = ollama.chat(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}]
+                model=self.model or "llama3",
+                messages=[{"role": "user", "content": prompt}],
             )
-            text = response["message"]["content"].strip()
+
+            # Handle both dict-like and object-like Ollama responses
+            if hasattr(response, "message") and hasattr(response.message, "content"):
+                text = response.message.content
+            elif isinstance(response, dict):
+                message = response.get("message", {})
+                if isinstance(message, dict):
+                    text = message.get("content", "")
+                else:
+                    text = getattr(message, "content", "")
+            else:
+                raise TypeError(f"Unexpected Ollama response type: {type(response).__name__}")
+
+            text = str(text).strip()
+            if not text:
+                raise ValueError("Empty content returned by Ollama")
+
             title, abstract = self._parse_response(text)
+
         except Exception as e:
             logger.warning(f"[PoisonInjectorAgent] Ollama failed: {e}. Using fallback.")
             title, abstract = self._fallback(real_cite)
+
 
         return {
             "id": self.poison_id,

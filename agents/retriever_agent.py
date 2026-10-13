@@ -14,6 +14,14 @@ from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
+_MODEL_CACHE = {}
+
+
+def _get_model(name: str):
+    if name not in _MODEL_CACHE:
+        _MODEL_CACHE[name] = SentenceTransformer(name)
+    return _MODEL_CACHE[name]
+
 
 class RetrieverAgent:
     """
@@ -32,7 +40,7 @@ class RetrieverAgent:
         os.makedirs(corpus_dir, exist_ok=True)
 
         logger.info(f"[RetrieverAgent] Loading embedding model: {embedding_model}")
-        self.model = SentenceTransformer(embedding_model)
+        self.model = _get_model(embedding_model)
         self.dim = self.model.get_sentence_embedding_dimension()
 
         # Load existing index + metadata, or create fresh ones

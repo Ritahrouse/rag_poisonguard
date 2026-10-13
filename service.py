@@ -41,6 +41,13 @@ def _make_retriever(corpus_dir: str):
     return RetrieverAgent(corpus_dir=corpus_dir, embedding_model=config.EMBEDDING_MODEL)
 
 
+def _make_injector(retriever):
+    from agents.poison_injector_agent import PoisonInjectorAgent
+    injector = PoisonInjectorAgent(retriever, model=config.OLLAMA_MODEL, dry_run=False)
+    injector.use_llm = config.ENABLE_LLM_ATTACKER
+    return injector
+
+
 def _search(query: str, top_k: int) -> list[dict]:
     key = (query.strip().lower(), top_k)
     now = time.time()
@@ -78,7 +85,12 @@ def _public(paper: dict) -> dict:
     return out
 
 
-def run_audit(query: str, top_k: Optional[int] = None, z_threshold: Optional[float] = None) -> dict:
+def run_audit(
+    query: str,
+    top_k: Optional[int] = None,
+    z_threshold: Optional[float] = None,
+    inject_poison: bool = False,
+) -> dict:
     top_k = top_k or config.TOP_K
     z = config.Z_SCORE_THRESHOLD if z_threshold is None else z_threshold
 
@@ -88,17 +100,34 @@ def run_audit(query: str, top_k: Optional[int] = None, z_threshold: Optional[flo
         t0 = time.perf_counter()
         papers = _search(query, top_k)
         if not papers:
-            return {"query": query, "clean": [], "quarantined": [],
+            return {"query": query, "clean": [], "quarantined": [], "attack": None,
                     "timing_ms": {"retrieval": 0.0, "audit": 0.0}}
 
         with tempfile.TemporaryDirectory() as tmp:
             retriever = _make_retriever(tmp)
             retriever.add_papers(papers)
+            poison_paper = None
+            if inject_poison:
+                poison_paper = _make_injector(retriever).inject(query, config.ATTACKER_GOAL)
             retrieved = retriever.retrieve(query, top_k=top_k)
         t1 = time.perf_counter()
 
+        ranked_ids = [p["id"] for p in retrieved]
         clean, quarantined = AuditorAgent(z_score_threshold=z).audit(retrieved)
         t2 = time.perf_counter()
+
+        attack = None
+        if poison_paper is not None:
+            pid = poison_paper["id"]
+            attack = {
+                "injected": True,
+                "poison_id": pid,
+                "title": poison_paper["title"],
+                "abstract": poison_paper["abstract"],
+                "retrieved": pid in ranked_ids,
+                "rank": ranked_ids.index(pid) + 1 if pid in ranked_ids else None,
+                "detected": any(p["id"] == pid for p in quarantined),
+            }
 
         logger.info("audit done query=%r clean=%d quarantined=%d", query, len(clean), len(quarantined))
         return {
@@ -106,6 +135,7 @@ def run_audit(query: str, top_k: Optional[int] = None, z_threshold: Optional[flo
             "z_threshold": z,
             "clean": [_public(p) for p in clean],
             "quarantined": [_public(p) for p in quarantined],
+            "attack": attack,
             "timing_ms": {
                 "retrieval": round((t1 - t0) * 1000, 1),
                 "audit": round((t2 - t1) * 1000, 1),

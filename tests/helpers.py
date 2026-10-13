@@ -16,8 +16,12 @@ def make_paper(i: int, score: float = 1.0, **overrides) -> dict:
     return paper
 
 
+def make_legit_set(n: int = 20) -> list[dict]:
+    return [make_paper(i, score=1.0 + 0.01 * i) for i in range(n)]
+
+
 def make_result_set(poison_score: float = 0.4) -> list[dict]:
     """19 legit papers with similar scores plus 1 poisoned outlier."""
-    papers = [make_paper(i, score=1.0 + 0.01 * i) for i in range(19)]
+    papers = make_legit_set(19)
     papers.append(make_paper(99, score=poison_score, poisoned=True))
     return papers
