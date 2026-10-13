@@ -8,6 +8,7 @@
 #  Threshold set to -1.7 for realistic detection.
 # ─────────────────────────────────────────────
 
+from datetime import datetime, timezone
 import logging
 import numpy as np
 
@@ -107,7 +108,7 @@ class MetadataInspector:
             if published:
                 try:
                     year = int(published[:4])
-                    if year > 2026:
+                    if year > datetime.now(timezone.utc).year:
                         flags.append(f"Future date: {published}")
                 except ValueError:
                     pass
