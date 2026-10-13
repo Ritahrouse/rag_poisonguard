@@ -15,6 +15,7 @@ import logging
 import tempfile
 import threading
 import time
+from typing import Optional
 
 import config
 from agents.auditor_agent import AuditorAgent
@@ -77,7 +78,7 @@ def _public(paper: dict) -> dict:
     return out
 
 
-def run_audit(query: str, top_k: int | None = None, z_threshold: float | None = None) -> dict:
+def run_audit(query: str, top_k: Optional[int] = None, z_threshold: Optional[float] = None) -> dict:
     top_k = top_k or config.TOP_K
     z = config.Z_SCORE_THRESHOLD if z_threshold is None else z_threshold
 

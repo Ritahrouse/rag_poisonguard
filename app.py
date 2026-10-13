@@ -6,6 +6,7 @@
 
 import logging
 import sys
+from typing import Optional
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -26,8 +27,8 @@ app = FastAPI(title="RAG-PoisonGuard", version="0.1.0")
 
 class AuditRequest(BaseModel):
     query: str = Field(min_length=3, max_length=300)
-    top_k: int | None = Field(default=None, ge=5, le=50)
-    z_threshold: float | None = Field(default=None, ge=-5.0, le=0.0)
+    top_k: Optional[int] = Field(default=None, ge=5, le=50)
+    z_threshold: Optional[float] = Field(default=None, ge=-5.0, le=0.0)
     inject_poison: bool = False
 
 
