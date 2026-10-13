@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="RAG-PoisonGuard", version="0.1.0")
 
+from fastapi.responses import RedirectResponse
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/docs")
 
 class AuditRequest(BaseModel):
     query: str = Field(min_length=3, max_length=300)
