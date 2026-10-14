@@ -16,13 +16,15 @@ from agents.auditor_agent import AuditorAgent, FlagAgent, MetadataInspector, Sim
 
 DEFAULT_THRESHOLD = -1.7
 THRESHOLDS = [-1.0, -1.25, -1.5, -1.7, -2.0, -2.5, -3.0]
-VARIANTS = ["similarity", "metadata", "id_date", "full", "full+id_date"]
+VARIANTS = ["similarity", "metadata", "id_date", "full", "full+id_date", "docstring", "docstring+id_date"]
 VARIANT_LABELS = {
     "similarity": "Similarity z-score only",
     "metadata": "Metadata checks only",
     "id_date": "ID/date consistency only (new)",
     "full": "Current AuditorAgent",
     "full+id_date": "Current AuditorAgent + ID/date (new)",
+    "docstring": "FlagAgent as documented (similarity alone does not flag)",
+    "docstring+id_date": "As documented + ID/date (new)",
 }
 FALLBACK_MARKER = "dense retrieval models are more susceptible than sparse retrievers"
 
@@ -81,6 +83,9 @@ def flagged_ids(variant: str, papers: list, threshold: float = DEFAULT_THRESHOLD
             p["similarity_suspicious"] = False
         out = FlagAgent().decide(out)
         return {p["id"] for p in out if p["flagged"]}
+    if variant.startswith("id_date:"):
+        lag = int(variant.split(":", 1)[1])
+        return {p["id"] for p in papers if id_date_inconsistent(p, lag)}
     if variant == "id_date":
         return {p["id"] for p in papers if id_date_inconsistent(p)}
     if variant == "full":
@@ -88,6 +93,17 @@ def flagged_ids(variant: str, papers: list, threshold: float = DEFAULT_THRESHOLD
         return {p["id"] for p in quarantined}
     if variant == "full+id_date":
         return flagged_ids("full", papers, threshold) | flagged_ids("id_date", papers, threshold)
+    if variant == "docstring":
+        out = SimilarityChecker(threshold).check(papers)
+        out = MetadataInspector().check(out)
+        flagged = set()
+        for p in out:
+            critical = any(any(cf in f for cf in FlagAgent.CRITICAL_FLAGS) for f in p["metadata_flags"])
+            if critical or (p["similarity_suspicious"] and p["metadata_flags"]):
+                flagged.add(p["id"])
+        return flagged
+    if variant == "docstring+id_date":
+        return flagged_ids("docstring", papers, threshold) | flagged_ids("id_date", papers, threshold)
     raise ValueError(f"unknown variant: {variant}")
 
 
@@ -101,24 +117,44 @@ def evaluate(runs: list, variant: str, threshold: float = DEFAULT_THRESHOLD) -> 
         fp_papers += len(flagged)
         clean_runs_with_fp += 1 if flagged else 0
 
-    retrieved = detected = 0
+    retrieved = detected = top3 = top5 = asr_top5 = 0
     for r in runs:
         p = r["poison"]
         if p["rank"] is None:
             continue
         retrieved += 1
+        top3 += 1 if p["rank"] <= 3 else 0
+        top5 += 1 if p["rank"] <= 5 else 0
         if p["poison_id"] in flagged_ids(variant, p["retrieved"], threshold):
             detected += 1
+        elif p["rank"] <= 5:
+            asr_top5 += 1
 
     return {
         "n_runs": n_runs,
         "retrieved": retrieved,
         "detected": detected,
         "asr_after": retrieved - detected,
+        "top3": top3,
+        "top5": top5,
+        "asr_after_top5": asr_top5,
         "clean_papers": clean_papers,
         "fp_papers": fp_papers,
         "clean_runs_with_fp": clean_runs_with_fp,
     }
+
+
+def false_positives(runs: list, variant: str, threshold: float = DEFAULT_THRESHOLD) -> list:
+    """Legitimate papers flagged by a detector, as (query, id, published, title)."""
+    out = []
+    for r in runs:
+        flagged = flagged_ids(variant, r["clean"], threshold)
+        flags = {p["id"]: p["metadata_flags"] for p in MetadataInspector().check(copy.deepcopy(r["clean"]))}
+        for p in r["clean"]:
+            if p["id"] in flagged:
+                out.append((r["query"], p["id"], p.get("published", ""), p.get("title", ""),
+                            "; ".join(flags.get(p["id"], []))))
+    return out
 
 
 def poison_z(run: dict) -> Optional[float]:
@@ -161,21 +197,25 @@ def render_report(runs: list, meta: dict) -> str:
         "| Metric | Value |",
         "|---|---|",
         f"| Poison retrieved in top-k (ASR before mitigation) | {_ci(base['retrieved'], n)} |",
+        f"| Poison in top 3 | {_ci(base['top3'], n)} |",
+        f"| Poison in top 5 | {_ci(base['top5'], n)} |",
         f"| Poison caught, among retrieved | {_ci(base['detected'], base['retrieved'])} |",
         f"| Attack still reaches the user (ASR after mitigation) | {_ci(base['asr_after'], n)} |",
+        f"| Attack reaches the user from the top 5 | {_ci(base['asr_after_top5'], n)} |",
         f"| Legitimate papers wrongly flagged | {_ci(base['fp_papers'], base['clean_papers'])} |",
         f"| Clean queries with at least one false alarm | {_ci(base['clean_runs_with_fp'], n)} |",
         "",
         f"## Detector ablation (threshold {DEFAULT_THRESHOLD})",
         "",
-        "| Detector | Caught (of retrieved) | ASR after | Papers wrongly flagged | Clean queries with false alarm |",
-        "|---|---|---|---|---|",
+        "| Detector | Caught (of retrieved) | ASR after (top-k) | ASR after (top 5) | Papers wrongly flagged | Clean queries with false alarm |",
+        "|---|---|---|---|---|---|",
     ]
     for v in VARIANTS:
         e = evaluate(runs, v, DEFAULT_THRESHOLD)
         lines.append(
             f"| {VARIANT_LABELS[v]} | {_rate(e['detected'], e['retrieved'])} "
             f"({e['detected']}/{e['retrieved']}) | {_rate(e['asr_after'], n)} "
+            f"| {_rate(e['asr_after_top5'], n)} "
             f"| {_rate(e['fp_papers'], e['clean_papers'])} ({e['fp_papers']}/{e['clean_papers']}) "
             f"| {_rate(e['clean_runs_with_fp'], n)} ({e['clean_runs_with_fp']}/{n}) |"
         )
@@ -192,6 +232,25 @@ def render_report(runs: list, meta: dict) -> str:
         lines.append(
             f"| {t} | {_rate(e['detected'], e['retrieved'])} | {_rate(e['asr_after'], n)} "
             f"| {_rate(e['fp_papers'], e['clean_papers'])} | {_rate(e['clean_runs_with_fp'], n)} |"
+        )
+
+    lines += [
+        "",
+        "## ID/date lag sweep",
+        "How many months after the submission date the arXiv ID month may fall before a paper is flagged.",
+        "An ID month before the submission month is never allowed.",
+        "",
+        "| Max lag (months) | Caught (of retrieved) | ASR after (top 5) | Papers wrongly flagged | Clean queries with false alarm |",
+        "|---|---|---|---|---|",
+    ]
+    for lag in (0, 1, 2, 3, 999):
+        e = evaluate(runs, f"id_date:{lag}")
+        label = "no upper limit" if lag == 999 else str(lag)
+        lines.append(
+            f"| {label} | {_rate(e['detected'], e['retrieved'])} ({e['detected']}/{e['retrieved']}) "
+            f"| {_rate(e['asr_after_top5'], n)} "
+            f"| {_rate(e['fp_papers'], e['clean_papers'])} ({e['fp_papers']}/{e['clean_papers']}) "
+            f"| {_rate(e['clean_runs_with_fp'], n)} ({e['clean_runs_with_fp']}/{n}) |"
         )
 
     lines += [
@@ -214,6 +273,17 @@ def render_report(runs: list, meta: dict) -> str:
             f"| {r['query'][:50]} | {p['rank'] or '-'} | {'-' if z is None else z} "
             f"| {caught} | {caught_id} | {fa} |"
         )
+
+    for v in ("id_date", "metadata"):
+        fps = false_positives(runs, v)
+        lines += ["", f"## Legitimate papers flagged by: {VARIANT_LABELS[v]}", ""]
+        if not fps:
+            lines.append("None.")
+        for q, pid, pub, title, flags in fps[:15]:
+            lines.append(f"- {pid} (published {pub}): {title[:70]}  [query: {q[:40]}]"
+                         + (f"  [flags: {flags}]" if flags else ""))
+        if len(fps) > 15:
+            lines.append(f"- ... and {len(fps) - 15} more")
 
     lines += [
         "",

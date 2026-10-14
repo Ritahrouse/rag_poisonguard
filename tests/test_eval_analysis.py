@@ -101,7 +101,50 @@ def test_report_contains_sections_and_numbers():
     meta = {"top_k": 20, "attacker": "fallback", "date": "2026-10-15"}
     report = ea.render_report(make_runs(), meta)
     for heading in ("## Setup", "## Main result", "## Detector ablation",
-                    "## Threshold sweep", "## Per query", "## Caveats"):
+                    "## Threshold sweep", "## Per query", "## Legitimate papers flagged", "## Caveats"):
         assert heading in report
     assert "2/2" in report
     assert "Current AuditorAgent + ID/date (new)" in report
+
+
+def test_top_k_counts_and_top5_asr():
+    runs = make_runs()
+    e = ea.evaluate(runs, "full")
+    # run 1: poison rank 1 (caught); run 2: stealthy poison ranks 6th
+    assert e["top3"] == 1 and e["top5"] == 1
+    assert e["asr_after_top5"] == 0
+    miss = ea.evaluate(runs, "metadata")
+    assert miss["asr_after_top5"] == 1  # the rank-1 poison slips through
+
+
+def test_documented_flagagent_does_not_flag_on_similarity_alone():
+    papers = [make_paper(i, score=1.0 + 0.01 * i) for i in range(19)] + [make_paper(99, score=0.4)]
+    assert make_paper(99)["id"] in ea.flagged_ids("full", papers)
+    assert ea.flagged_ids("docstring", papers) == set()
+
+
+def test_false_positives_lists_flagged_legit_papers():
+    runs = make_runs()
+    runs[0]["clean"][0]["id"] = "2401.10000"
+    runs[0]["clean"][0]["published"] = "2023-01-01"  # ID month after publish by 12 months
+    fps = ea.false_positives(runs, "id_date")
+    assert [f[1] for f in fps] == ["2401.10000"]
+
+
+def test_id_date_lag_variants():
+    runs = make_runs()
+    # stealthy poison: ID 2508 vs published 2025-03 means a 5 month lag
+    assert ea.evaluate(runs, "id_date:2")["detected"] == 2
+    assert ea.evaluate(runs, "id_date:999")["detected"] == 0
+    # legit papers are consistent, so no variant flags them
+    assert ea.evaluate(runs, "id_date:0")["fp_papers"] == 0
+
+
+def test_report_has_lag_sweep_and_flag_details():
+    runs = make_runs()
+    runs[0]["clean"][0]["id"] = "2403.10000"
+    runs[0]["clean"][0]["published"] = "2024-01-01"  # lag 2 months
+    report = ea.render_report(runs, {"top_k": 20, "attacker": "x", "date": "d"})
+    assert "## ID/date lag sweep" in report
+    assert "no upper limit" in report
+    assert "2403.10000" in report
