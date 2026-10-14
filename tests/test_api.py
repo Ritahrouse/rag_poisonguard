@@ -4,6 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app as app_module
+import config
+import security
 import service
 from helpers import make_legit_set, make_paper, make_result_set
 
@@ -59,6 +61,8 @@ def fakes(monkeypatch):
     monkeypatch.setattr(service, "_make_retriever", lambda d: FakeRetriever(d))
     monkeypatch.setattr(service, "_make_injector", lambda r: FakeInjector(r))
     monkeypatch.setattr(service, "_slots", threading.BoundedSemaphore(1))
+    monkeypatch.setattr(config, "API_KEY", "")
+    monkeypatch.setattr(security, "limiter", security.RateLimiter(1000, 1000))
 
 
 def test_health():

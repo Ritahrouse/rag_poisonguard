@@ -9,11 +9,12 @@ import sys
 from typing import Optional
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 import config
+import security
 import service
 
 logging.basicConfig(
@@ -22,6 +23,9 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+if not config.API_KEY:
+    logger.warning("API_KEY is not set: /audit is open. Fine for local dev only.")
 
 app = FastAPI(title="RAG-PoisonGuard", version="0.1.0")
 
@@ -43,7 +47,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/audit")
+@app.post("/audit", dependencies=[Depends(security.require_access)])
 def audit(req: AuditRequest):
     try:
         return service.run_audit(req.query, req.top_k, req.z_threshold, req.inject_poison)

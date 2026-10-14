@@ -40,3 +40,9 @@ ATTACKER_GOAL = os.getenv(
 # Use an Ollama LLM to craft the poison paper. Off by default: a cloud container has
 # no Ollama server, so the agent's built-in fallback paper is used instead.
 ENABLE_LLM_ATTACKER = os.getenv("ENABLE_LLM_ATTACKER", "false").lower() == "true"
+
+# Access control for /audit. If API_KEY is empty, auth is off (local dev only).
+API_KEY = os.getenv("API_KEY", "")
+# Per-key request limits (in-memory, per replica). The service runs one replica.
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "5"))
+RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "30"))
