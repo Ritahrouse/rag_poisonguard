@@ -8,3 +8,6 @@ logs
 outputs
 corpus
 tests
+eval_cache
+
+eval_smoke_cache

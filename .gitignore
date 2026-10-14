@@ -22,3 +22,7 @@ outputs/
 
 # Environment variables
 .env
+
+eval_cache/
+
+eval_smoke_cache/
