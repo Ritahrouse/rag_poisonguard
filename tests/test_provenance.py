@@ -129,3 +129,16 @@ def test_report_includes_provenance_sections_only_when_given():
     assert "arXiv provenance check only (new)" in with_prov
     without = ea.render_report(runs, meta)
     assert "provenance lookup" not in without
+
+
+def test_identity_copy_is_caught_only_when_the_abstract_is_compared():
+    runs, data = runs_with_provenance()
+    real = make_paper(50, published="2024-01-15")
+    data["2508.22586"] = record_for(real)  # arXiv holds a real paper under the poison's ID
+    poison_run = runs[0]["poison"]
+    poison_run["title"] = real["title"]
+    for p in poison_run["retrieved"]:
+        if p["id"] == "2508.22586":
+            p["title"] = real["title"]  # attacker copied the real title, kept its own abstract
+    assert ea.evaluate(runs, "provenance", provenance=data)["detected"] == 1
+    assert ea.evaluate(runs, "provenance_title", provenance=data)["detected"] == 0

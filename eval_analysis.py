@@ -18,7 +18,7 @@ from agents.auditor_agent import AuditorAgent, FlagAgent, MetadataInspector, Sim
 DEFAULT_THRESHOLD = -1.7
 THRESHOLDS = [-1.0, -1.25, -1.5, -1.7, -2.0, -2.5, -3.0]
 VARIANTS = ["similarity", "metadata", "id_date", "full", "full+id_date", "docstring", "docstring+id_date"]
-PROVENANCE_VARIANTS = ["provenance", "full+provenance"]
+PROVENANCE_VARIANTS = ["provenance", "provenance_title", "full+provenance"]
 VARIANT_LABELS = {
     "similarity": "Similarity z-score only",
     "metadata": "Metadata checks only",
@@ -28,6 +28,7 @@ VARIANT_LABELS = {
     "docstring": "FlagAgent as documented (similarity alone does not flag)",
     "docstring+id_date": "As documented + ID/date (new)",
     "provenance": "arXiv provenance check only (new)",
+    "provenance_title": "arXiv check on ID and title only, no abstract (new)",
     "full+provenance": "Current AuditorAgent + provenance (new)",
 }
 FALLBACK_MARKER = "dense retrieval models are more susceptible than sparse retrievers"
@@ -76,13 +77,13 @@ def _silent(fn, *args):
         return fn(*args)
 
 
-def _provenance_flags(papers: list, provenance: dict) -> set:
+def _provenance_flags(papers: list, provenance: dict, abstract_min: float = 0.9) -> set:
     flagged = set()
     for p in papers:
         record = provenance.get(prov.base_id(p["id"]), "unavailable")
         if isinstance(record, str):  # lookup failed: unverifiable, not proven fake
             continue
-        if prov.check_paper(p, record) != "verified":
+        if prov.check_paper(p, record, abstract_min=abstract_min) != "verified":
             flagged.add(p["id"])
     return flagged
 
@@ -93,7 +94,7 @@ def flagged_ids(variant: str, papers: list, threshold: float = DEFAULT_THRESHOLD
     if variant in PROVENANCE_VARIANTS:
         if provenance is None:
             raise ValueError("provenance data is required for this variant")
-        flagged = _provenance_flags(papers, provenance)
+        flagged = _provenance_flags(papers, provenance, 0.0 if variant == "provenance_title" else 0.9)
         if variant == "full+provenance":
             flagged |= flagged_ids("full", papers, threshold)
         return flagged

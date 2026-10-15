@@ -31,6 +31,8 @@
 | Current AuditorAgent + ID/date (new) | 37% (11/30) | 63% | 50% | 6% (34/600) | 87% (26/30) |
 | FlagAgent as documented (similarity alone does not flag) | 10% (3/30) | 90% | 77% | 3% (18/600) | 50% (15/30) |
 | As documented + ID/date (new) | 10% (3/30) | 90% | 77% | 4% (23/600) | 60% (18/30) |
+| arXiv provenance check only (new) | 100% (30/30) | 0% | 0% | 0% (0/600) | 0% (0/30) |
+| Current AuditorAgent + provenance (new) | 100% (30/30) | 0% | 0% | 5% (29/600) | 77% (23/30) |
 
 ## Threshold sweep (current AuditorAgent)
 
@@ -91,6 +93,13 @@ An ID month before the submission month is never allowed.
 | reinforcement learning smart grid control | 1 | -2.8177 | yes | yes | 1 |
 | protein structure prediction | 4 | -1.0032 | no | no | 2 |
 
+## arXiv provenance lookup
+
+| Papers | Verified | Not on arXiv | Text mismatch | Lookup unavailable |
+|---|---|---|---|---|
+| Legitimate (unique) | 583 | 0 | 0 | 0 |
+| Poison | 0 | 7 | 23 | 0 |
+
 ## Legitimate papers flagged by: ID/date consistency only (new)
 
 - 2601.05264v1 (published 2025-11-07): Engineering the RAG Stack: A Comprehensive Review of the Architecture   [query: retrieval-augmented generation evaluatio]
@@ -105,6 +114,10 @@ An ID month before the submission month is never allowed.
 - 2009.00395v1 (published 2020-09-01): Sampling Attacks: Amplification of Membership Inference Attacks by Rep  [query: membership inference attacks]  [flags: Implausibly high accuracy: 100%; Suspicious keyword repetition: 'membership' x5]
 - 2603.20985v1 (published 2026-03-22): Consistent but Dangerous: Per-Sample Safety Classification Reveals Fal  [query: vision language models]  [flags: Implausibly high accuracy: 98.5%]
 
+## Legitimate papers flagged by: arXiv provenance check only (new)
+
+None.
+
 ## Caveats
 - Confidence intervals are 95% Wilson intervals. With about 30 queries they are wide.
 - The z-score is computed inside each retrieved set, so it depends on that set's spread.
@@ -112,3 +125,5 @@ An ID month before the submission month is never allowed.
   A consistent attacker would defeat it. Treat it as one iteration of a red/blue loop.
 - Queries were chosen by hand and one attacker goal is used throughout.
 - Legitimate-paper labels are assumed, not verified.
+- Provenance verifies origin, not truth. A real arXiv paper written to mislead still passes,
+  and papers that are not on arXiv cannot be verified at all.
