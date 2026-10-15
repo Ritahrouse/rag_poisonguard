@@ -84,13 +84,14 @@ class PoisonInjectorAgent:
         return "PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation"
 
     def inject(self, query: str, attacker_goal: str) -> dict:
+        published = self._generate_realistic_date()
+        self.poison_id = self._id_for_date(published)
         print("\n[PoisonInjectorAgent] Crafting sophisticated poison paper...")
         print(f"  Query         : '{query}'")
         print(f"  Attacker goal : {attacker_goal}")
         print(f"  Assigned ID   : {self.poison_id}  [T1: valid arXiv format]")
 
         authors   = self._build_fictional_identity()
-        published = self._generate_realistic_date()
         real_cite = self._get_real_citation()
 
         print(f"  Authors       : {', '.join(authors)}  [T2: name mimicry]")
@@ -242,3 +243,12 @@ ABSTRACT: <abstract>"""
             f"[PoisonInjectorAgent] Injected '{self.poison_id}' "
             f"— corpus now has {self.retriever.index.ntotal} vectors."
         )
+
+    def _id_for_date(self, published: str) -> str:
+           """[T1] ID month matches the submission month (sometimes the next one)."""
+           year, month = int(published[:4]), int(published[5:7])
+           month += random.choice([0, 0, 1])
+           if month > 12:
+               month -= 12
+               year += 1
+           return f"{year % 100:02d}{month:02d}.{random.randint(10000, 29999)}"

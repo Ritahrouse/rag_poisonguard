@@ -44,6 +44,18 @@
 | -2.5 | 20% | 80% | 1% | 23% |
 | -3.0 | 13% | 87% | 0% | 10% |
 
+## ID/date lag sweep
+How many months after the submission date the arXiv ID month may fall before a paper is flagged.
+An ID month before the submission month is never allowed.
+
+| Max lag (months) | Caught (of retrieved) | ASR after (top 5) | Papers wrongly flagged | Clean queries with false alarm |
+|---|---|---|---|---|
+| 0 | 93% (28/30) | 3% | 5% (31/600) | 63% (19/30) |
+| 1 | 90% (27/30) | 3% | 1% (5/600) | 17% (5/30) |
+| 2 | 87% (26/30) | 7% | 0% (0/600) | 0% (0/30) |
+| 3 | 77% (23/30) | 17% | 0% (0/600) | 0% (0/30) |
+| no upper limit | 30% (9/30) | 57% | 0% (0/600) | 0% (0/30) |
+
 ## Per query
 
 | Query | Poison rank | Poison z | Caught (current) | Caught (+ID/date) | Clean false alarms (current) |
@@ -84,14 +96,14 @@
 - 2601.05264v1 (published 2025-11-07): Engineering the RAG Stack: A Comprehensive Review of the Architecture   [query: retrieval-augmented generation evaluatio]
 - 2608.18115v1 (published 2026-06-30): Temporal Multi-Signal Fusion for Token-Level Hallucination Detection  [query: hallucination detection in large languag]
 - 1910.01441v1 (published 2019-08-31): Can Sentiment Analysis Reveal Structure in a Plotless Novel?  [query: multilingual sentiment analysis]
-- 2404.07214v4 (published 2024-02-20): Exploring the Frontier of Vision-Language Models: A Survey of Current   [query: vision language models]
+- 2404.07214v4 (published 2024-02-20): Exploring the Frontier of Vision-Language Models: A Survey of Current   [query: vision language models]  [flags: Suspicious keyword repetition: 'models' x6]
 - 2210.06124v2 (published 2022-08-22): Elastic buildings: Calibrated district-scale simulation of occupant-fl  [query: building energy load forecasting]
 
 ## Legitimate papers flagged by: Metadata checks only
 
-- 2509.14285v4 (published 2025-09-16): A Multi-Agent LLM Defense Pipeline Against Prompt Injection Attacks  [query: prompt injection attacks on LLM agents]
-- 2009.00395v1 (published 2020-09-01): Sampling Attacks: Amplification of Membership Inference Attacks by Rep  [query: membership inference attacks]
-- 2603.20985v1 (published 2026-03-22): Consistent but Dangerous: Per-Sample Safety Classification Reveals Fal  [query: vision language models]
+- 2509.14285v4 (published 2025-09-16): A Multi-Agent LLM Defense Pipeline Against Prompt Injection Attacks  [query: prompt injection attacks on LLM agents]  [flags: Implausibly high accuracy: 100%]
+- 2009.00395v1 (published 2020-09-01): Sampling Attacks: Amplification of Membership Inference Attacks by Rep  [query: membership inference attacks]  [flags: Implausibly high accuracy: 100%; Suspicious keyword repetition: 'membership' x5]
+- 2603.20985v1 (published 2026-03-22): Consistent but Dangerous: Per-Sample Safety Classification Reveals Fal  [query: vision language models]  [flags: Implausibly high accuracy: 98.5%]
 
 ## Caveats
 - Confidence intervals are 95% Wilson intervals. With about 30 queries they are wide.
